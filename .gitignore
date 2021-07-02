@@ -1,6 +1,8 @@
 venv/
 *.zip
-*.jpg
+# *.jpg
+*.png
+*.h5
 *.mp4
 test*
 __pycache__
