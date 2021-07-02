@@ -1,0 +1,6 @@
+venv/
+*.zip
+*.jpg
+*.mp4
+test*
+__pycache__
