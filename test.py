@@ -7,17 +7,21 @@ from mhi import create_MHI
 import torch
 from fd_net import load_fd_net_model, inference
 from PIL import Image
+from human_mask import get_body_mask
 
 # %%
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = load_fd_net_model().to(device)
 model.eval()
-# %%
-
+# %%+
 path = './raw_frames/Jenia/'
-images = [path + n for n in os.listdir(path)]
+image_paths = [path + n for n in os.listdir(path)]
+image_paths.sort()
 
-input_batch = create_MHI(sorted(images), interval=2)
+images = [cv2.imread(n) for n in image_paths]
+masks = get_body_mask(images)
+
+input_batch = create_MHI(image_paths, masks, interval=2)
 
 #%%
 # input_batch = [(f, cv2.resize(np.hstack([ np.zeros_like(p) , p]), (224, 224))) for f, p in input_batch]

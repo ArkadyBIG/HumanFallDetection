@@ -35,9 +35,6 @@ model = mrcnn.model.MaskRCNN(mode="inference",
 model.load_weights(filepath="models/mask_rcnn_coco.h5",
                    by_name=True)
 
-# %%
-alpha = 0.5
-
 
 def filter_people(result):
     result = result.copy()
@@ -53,12 +50,19 @@ def get_biggets_result_by_area(result):
     return result['rois'][_id], result['class_ids'][_id], result['scores'][_id], result['masks'][_id]
 
 
-def get_body_mask(img_rgb):
-    r = model.detect([img_rgb], verbose=0)[0]
-    r['masks'] = r['masks'].transpose(2, 0, 1)
-    r = filter_people(r)
-    box, _, _, mask = get_biggets_result_by_area(r)
-    return mask
+def get_body_mask(imgs_rgb):
+    result = model.detect(imgs_rgb, verbose=0)
+    masks = []
+    for i in range(len(imgs_rgb)):
+        r = result[i]
+        r['masks'] = r['masks'].transpose(2, 0, 1)
+        r = filter_people(r)
+        if not r['masks'].size:
+            return np.zeros_like(img_rgb, bool)
+        
+        box, _, _, mask = get_biggets_result_by_area(r)
+        masks.append(mask)
+    return masks
 # #%%
 # for name in tqdm(os.listdir('raw_frames/Jenia')[6:40]):
 
