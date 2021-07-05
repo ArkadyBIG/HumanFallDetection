@@ -1,8 +1,9 @@
 import os
 import numpy as np
 import cv2
-from human_mask import get_body_mask
+# from human_mask import get_body_mask
 from tqdm import tqdm
+from itertools import zip_longest
 
 import matplotlib.pyplot as plt
 
@@ -23,7 +24,7 @@ class MHIProcessor:
         self.mhi_zeros = np.zeros((dim, dim))        
         
     
-    def process(self, frame_bgr, save_batch=True):
+    def process(self, frame_bgr, mask):
         self.index += 1
 
         frame = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
@@ -39,11 +40,11 @@ class MHIProcessor:
             diff = cv2.absdiff(self.prev_frame, frame)
             
             binary = (diff >= (self.threshold * 255)).astype(np.uint8)
-            mask = get_body_mask(cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)).astype('u1')
-            mask = cv2.resize(mask,(self.dim, self.dim))
-            
-            
-            binary = mask & binary
+            # mask = get_body_mask(cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)).astype('u1')
+            if mask is not None:
+                mask = cv2.resize(mask,(self.dim, self.dim))
+                binary = mask & binary
+
             mhi = binary + (binary == 0) * np.maximum(self.mhi_zeros,
                                                       (self.prev_mhi - self.decay))
             # update frames
@@ -58,15 +59,15 @@ class MHIProcessor:
                 
         return None
 
-def create_MHI(images, **k):
+def create_MHI(images, masks=None, **k):
+    masks = masks or []
     mhi_processor = MHIProcessor(**k)
 
     preprocessed = []
-    for frame in tqdm(images):
+    for frame, mask in tqdm(zip_longest(images, masks)):
         if isinstance(frame, str):
             frame = cv2.imread(frame)
-        img = mhi_processor.process(frame, save_batch=True)
-        frame_id = mhi_processor.index
+        img = mhi_processor.process(frame, mask)
  
         if img is not None:
             img = cv2.resize(img, (224, 224))
