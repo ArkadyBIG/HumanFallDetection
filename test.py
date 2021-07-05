@@ -1,4 +1,13 @@
 #%%
+import tensorflow as tf
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    # Restrict TensorFlow to only allocate 1GB of memory on the first GPU
+    try:
+        tf.config.experimental.set_virtual_device_configuration(
+            gpus[0],
+            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=5024)])
+    except Exception as e: print(e)
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -18,10 +27,13 @@ path = './raw_frames/Jenia/'
 images = [path + n for n in os.listdir(path)]
 
 input_batch = create_MHI(sorted(images), interval=2)
-
+#%%
+preprocessed = [i[1] for i in input_batch]
+for i, img in enumerate(preprocessed):
+    cv2.imwrite('segmentation/no_segmentation/' + f'{i}.jpg', img)
+plt.imshow(input_batch[-1][0])
 #%%
 # input_batch = [(f, cv2.resize(np.hstack([ np.zeros_like(p) , p]), (224, 224))) for f, p in input_batch]
-preprocessed = [i[1] for i in input_batch]
 preprocessed = np.array(preprocessed, 'f4')
 preprocessed = preprocessed / 255
 preprocessed = preprocessed - np.array([0.485, 0.456, 0.406], 'f4')

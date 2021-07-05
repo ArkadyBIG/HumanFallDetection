@@ -57,6 +57,10 @@ def get_body_mask(img_rgb):
     r = model.detect([img_rgb], verbose=0)[0]
     r['masks'] = r['masks'].transpose(2, 0, 1)
     r = filter_people(r)
+
+    if not r['masks'].shape[0]:
+        return np.zeros_like(img_rgb[..., 0], 'bool')
+
     box, _, _, mask = get_biggets_result_by_area(r)
     return mask
 # #%%
