@@ -50,7 +50,7 @@ _input_batch = create_MHI(image_paths, preprocess=preprocess, interval=2, dim=No
 input_batch = [(a, b.copy()) for a, b in _input_batch]
 preprocessed = [i[1] for i in input_batch]
 
-def crop_movment(mhi):
+def crop_movement(mhi):
     mhi = np.vstack([np.zeros_like(mhi), mhi, np.zeros_like(mhi)])
     mhi = np.hstack([np.zeros_like(mhi), mhi, np.zeros_like(mhi)])
     thresh = (mhi[..., 0] > 0).astype('u1') * 255
@@ -100,7 +100,7 @@ def crop_movment(mhi):
     (int(rect[0]+rect[2]), int(rect[1]+rect[3])), (0, 255, 0), 4)
     return movement
 # img = crop_movment(input_batch[n][1])
-preprocessed_h = [crop_movment(p) for p in preprocessed]
+preprocessed_h = [crop_movement(p) for p in preprocessed]
 # for i, img in enumerate(preprocessed):
 #     cv2.imwrite('segmentation/no_segmentation/' + f'{i}.jpg', img)
 #%%
