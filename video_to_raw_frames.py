@@ -1,7 +1,8 @@
 import cv2
 import os
-path = 'Jenia.mp4'
-dest = 'Jenia/'
+path = 'videos/Marina_fall.MOV'
+name = path.split('.')[0].split('/')[-1]
+dest = f'raw_frames/{name}/'
 
 os.makedirs(dest, exist_ok=True)
 cap = cv2.VideoCapture(path)
