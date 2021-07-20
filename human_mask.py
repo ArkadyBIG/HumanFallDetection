@@ -37,7 +37,7 @@ def init_model():
 
     # Load the weights into the model.
     # Download the mask_rcnn_coco.h5 file from this link: https://github.com/matterport/Mask_RCNN/releases/download/v2.0/mask_rcnn_coco.h5
-    model.load_weights(filepath="models/mask_rcnn_coco.h5",
+    model.load_weights(filepath="/home/kotik/HumanFallDetection/models/mask_rcnn_coco.h5",
                     by_name=True)
 
 

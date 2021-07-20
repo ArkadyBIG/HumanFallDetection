@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import cv2
-# from human_mask import get_body_mask
+
 from tqdm import tqdm
 
 import matplotlib.pyplot as plt
@@ -45,6 +45,7 @@ class MHIProcessor:
             binary = (diff >= (self.threshold * 255)).astype(np.uint8)
             mask = True 
             if self.use_body_segmentation:
+                from human_mask import get_body_mask
                 mask = get_body_mask(cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB))
                 if mask is None:
                     binary.fill(0)
@@ -73,10 +74,10 @@ def create_MHI(images, preprocess=None, use_body_segmentation=True, **k):
         if preprocess is not None:
             frame = preprocess(frame)
         img = mhi_processor.process(frame)
-        frame_id = mhi_processor.index
+        # frame_id = mhi_processor.index
  
         if img is not None:
-            preprocessed.append((frame, img))
+            yield (frame, img)
     return preprocessed
 
 

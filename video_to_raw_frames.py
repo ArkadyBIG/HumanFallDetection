@@ -1,6 +1,6 @@
 import cv2
 import os
-path = 'videos/Marina_fall.MOV'
+path = 'videos/human_crawling.mp4'
 name = path.split('.')[0].split('/')[-1]
 dest = f'raw_frames/{name}/'
 

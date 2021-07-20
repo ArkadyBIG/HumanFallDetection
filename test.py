@@ -1,31 +1,27 @@
 
-#%%
+# %%
 import os
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
-import tensorflow as tf
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-    # Restrict TensorFlow to only allocate 1GB of memory on the first GPU
-    try:
-        tf.config.experimental.set_virtual_device_configuration(
-            gpus[0],
-            [tf.config.experimental.VirtualDeviceConfiguration(memory_limit=6024)])
-    except Exception as e: print(e)
-from human_mask import get_body_mask, model
-import numpy as np
-import matplotlib.pyplot as plt
-import cv2
-from mhi import create_MHI
-import torch
-from fd_net import load_fd_net_model, inference
-from PIL import Image
+import tensorflow_6gb_limit
+
 from time import time
+
+import cv2
 import imutils
+import matplotlib.pyplot as plt
+import numpy as np
 import tensorflow.keras as keras
+import torch
+from PIL import Image
+
+from fd_net import inference, load_fd_net_model
+from human_mask import get_body_mask, model
+from mhi import create_MHI
+
 # %%
 
 # %%
-path = './raw_frames/Marina_fall/'
+path = './raw_frames/Nastia_fall/'
 image_paths = [path + n for n in os.listdir(path)]
 image_paths.sort()
 len(image_paths)
@@ -50,57 +46,12 @@ _input_batch = create_MHI(image_paths, preprocess=preprocess, interval=2, dim=No
 input_batch = [(a, b.copy()) for a, b in _input_batch]
 preprocessed = [i[1] for i in input_batch]
 
-def crop_movement(mhi):
-    mhi = np.vstack([np.zeros_like(mhi), mhi, np.zeros_like(mhi)])
-    mhi = np.hstack([np.zeros_like(mhi), mhi, np.zeros_like(mhi)])
-    thresh = (mhi[..., 0] > 0).astype('u1') * 255
-    kernel = np.ones((10, 10))
-    thresh = cv2.dilate(thresh,kernel,iterations = 5)
-    cnts = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    cnts = imutils.grab_contours(cnts)
-    if not cnts:
-        mhi[..., 1].fill(255)
-        return np.zeros((224, 224, 3), 'u1')
-    c = max(cnts, key=cv2.contourArea)
-    cp = cv2.approxPolyDP(c, 3, True)
-    rect = cv2.boundingRect(cp)
-    img = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
+from preprocess_datasets.utils import crop_movement
 
-    _x, _y, w, h = rect
-    s = 0.1
-    _x -= w * s
-    w += w * 2 * s
-    _y -= h * s
-    h += h * 2 * s
-    ratio = w / h
-    target = 1
-    if ratio < target:
-        diff = (h * target - w) / 2
-        w += 2 * diff
-        _x -= diff
-    else:
-        diff = (w / target - h) / 2
-        _y -= diff
-        h += 2 * diff
-    # diff = w - h
-    # if diff > 0:
-    #     y = max(0, y - diff // 2)
-    #     h -= diff // 2
-    # elif diff < 0:
-    #     x = max(0, x + diff // 2)
-    #     w += diff // 2
-    x = int(max(0, _x))
-    y = int(max(0, _y))
-    w = int(w)
-    h = int(h)
-    # print(w / h)
-    movement = mhi[y:y+h, x:x+w].copy()
-    movement = cv2.resize(movement, (224, 224))
-    cv2.rectangle(mhi, (int(rect[0]), int(rect[1])), \
-    (int(rect[0]+rect[2]), int(rect[1]+rect[3])), (0, 255, 0), 4)
-    return movement
 # img = crop_movment(input_batch[n][1])
 preprocessed_h = [crop_movement(p) for p in preprocessed]
+input_batch = [a for a, b in zip(input_batch, preprocessed_h) if b is not None]
+preprocessed_h = [b for b in preprocessed_h if b is not None]
 # for i, img in enumerate(preprocessed):
 #     cv2.imwrite('segmentation/no_segmentation/' + f'{i}.jpg', img)
 #%%
@@ -120,7 +71,9 @@ preprocessed = preprocessed.transpose(0, 3, 1, 2)
 preprocessed.shape
 #%%
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-PATH = 'train_model/fdnet_UR_FALL_augmentations_095.pt'
+PATH = 'train_model/fd_net_augmentation/e_19_val_loss_0.086_acc_0.968.pt'
+PATH = 'train_model/movement_selection/e_26_val_loss_0.080_acc_0.972.pt'
+PATH = 'train_model/3_datasets/e_29_val_loss_0.085_acc_0.971.pt'
 model = load_fd_net_model(PATH).to(device)
 _ = model.eval()
 #%%
@@ -128,23 +81,40 @@ result = inference(model, preprocessed, split_batch_size=32)
 result = result[:, 0]
 result.max()
 #%%
+
+# %%
 karnel = np.ones(3)
 karnel = karnel / karnel.sum()
-result = np.convolve(result, karnel, 'same')
-# %%
+_result = result.copy()
+_result[_result < 0.8] = 0
+_result = np.convolve(_result, karnel, 'same')
+plt.plot(_result, )
+_result[_result >= 0.8] = 1
+_result[_result < 0.8] = 0
+karnel = np.ones(10)
+_result = np.convolve(_result, karnel, 'same')
+_result[_result > 0] = 1
+_result = _result.astype(int)
+plt.plot(_result, )
+#%%
+out_path = 'results/3_datasets/Nastia_fall_.mp4'
+if os.path.isfile(out_path):
+    0 / 0
+os.makedirs(out_path.rsplit('/', 1)[0], exist_ok=True)
 fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-out = cv2.VideoWriter('output.mp4', fourcc, 20.0, (224 * 3, 224))
-for i, ((frame, mhi), y, x) in enumerate(zip(input_batch, result, preprocessed_h)):
+out = cv2.VideoWriter(out_path, fourcc, 20.0, (224 * 3, 224))
+for i, ((frame, mhi), y, label, x) in enumerate(zip(input_batch, result, _result, preprocessed_h)):
     img = np.hstack([cv2.resize(frame, (224, 224)), cv2.resize(mhi, (224, 224)), x])
     cv2.putText(img, f'fall: {y:.1%}', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color=(0, 255, 2), thickness=2)
-    if y > 0.5:
+    cv2.putText(img, ['not_fall', 'fall'][label], (250, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, color=(0, 0, 255)[::1 if label else -1], thickness=2)
+    if y > 0.99:
         plt.imshow(img)
         plt.show()
         print(mhi.mean())
     out.write(img)
 out.release()
-               # %%
 
+# %%
 
 
 # %%

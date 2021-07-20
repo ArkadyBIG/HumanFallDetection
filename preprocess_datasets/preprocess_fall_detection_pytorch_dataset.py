@@ -8,8 +8,8 @@ from utils import crop_movement
 
 ORIGINAL_RESOLUTION = (320, 240)
 
-SRC_DIR = '/home/arkady_big/Repositories/HumanFallDetection/Fall-Detection-PyTorch/dataset'
-DEST_DIR = '/home/arkady_big/Repositories/HumanFallDetection/Fall-Detection-PyTorch/dataset_movement_selected'
+SRC_DIR = '/home/kotik/HumanFallDetection/Fall-Detection-PyTorch/dataset'
+DEST_DIR = '/home/kotik/HumanFallDetection/Fall-Detection-PyTorch/dataset_movement_selected'
 dataset_types = os.listdir(SRC_DIR) # /train /test /val
 
 def preprocess(img_path):
@@ -31,4 +31,3 @@ for data_type in dataset_types:
             movement = preprocess(img_path)
             if movement is not None:
                 cv2.imwrite(dest_path, movement)
-            break
